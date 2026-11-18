@@ -1,0 +1,20 @@
+{
+  "name": "sudoku-forge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Killer sudoku and thermometer puzzle workbench: Zig constraint solver compiled to WebAssembly, TypeScript web UI",
+  "scripts": {
+    "build:wasm": "node scripts/build-wasm.ts",
+    "dev": "npm run build:wasm && vite",
+    "build": "npm run build:wasm && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "npm run build:wasm && node --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.1.0"
+  }
+}
