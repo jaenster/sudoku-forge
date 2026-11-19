@@ -7,7 +7,7 @@
   "scripts": {
     "build:wasm": "node scripts/build-wasm.ts",
     "dev": "npm run build:wasm && vite",
-    "build": "npm run build:wasm && tsc --noEmit && vite build",
+    "build": "npm run build:wasm && tsc --noEmit && vite build && PAGE=classic vite build",
     "preview": "vite preview",
     "test": "npm run build:wasm && node --test test/*.test.ts"
   },

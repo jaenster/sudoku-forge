@@ -34,6 +34,21 @@ jobs:
         with:
           path: dist
 
+  macos-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.1
+      - run: ./scripts/build-native.sh
+      - run: zig test native/app.zig build/solver.o -lc
+      - run: ditto -c -k --keepParent "build/Sudoku Forge.app" sudoku-forge-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sudoku-forge-macos
+          path: sudoku-forge-macos.zip
+
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build

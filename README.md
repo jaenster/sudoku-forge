@@ -5,8 +5,11 @@ solver tells you live whether a solution exists, whether it is the only one,
 which clues are spare, and how little it would take to pin the puzzle down.
 It also generates complete puzzles on its own.
 
-The solver is written in Zig, compiled to WebAssembly, and driven by a
-TypeScript web UI. The build is one self-contained `index.html`.
+The solver and the designer are written in Zig. The same code runs as a
+native macOS app and, compiled to WebAssembly, in the browser at
+<https://jaenster.github.io/sudoku-forge/>. A puzzle travels as a short code,
+and a link ending in `#<code>` opens it directly. The earlier generator and
+play page is still there as `classic.html`.
 
 ## What it does
 
@@ -36,7 +39,10 @@ TypeScript web UI. The build is one self-contained `index.html`.
 | Given digits | supported |
 | Both diagonals hold 1 to 9 | supported |
 | Anti-knight | supported |
-| Arrows, kropki dots, XV, German whispers, renban, palindromes, even/odd cells, inequality signs, little killer and other outside clues, anti-king, non-consecutive | not yet |
+| Arrows, German whispers, renban, palindromes | designer (web and native); not in the classic page |
+| Kropki dots, XV, inequality signs between two cells | designer (web and native); not in the classic page |
+| Odd and even cells | designer (web and native); not in the classic page |
+| Little killer and other outside clues, anti-king, non-consecutive, negative constraints | not yet |
 | Set equivalence (for example the Phistomefel ring) as a deduction | not yet; the solver only uses the sum form, the 45 rule |
 | Irregular regions, other grid sizes | not yet |
 
@@ -78,12 +84,16 @@ times" figure.
 
 ```
 core/solver.zig       the solver, generator and analyser (no std, freestanding)
-web/src/solver.ts     typed wrapper around the wasm module, no DOM
-web/src/share.ts      share codes
-web/src/board.ts      SVG drawing
-web/src/main.ts       UI state and wiring
+native/app.zig        the designer: state, layout, input, drawing (portable)
+native/macos.zig      AppKit backend
+native/web.zig        browser backend, compiled to wasm with the solver
+web/src/app.ts        canvas shell around that wasm module (index.html)
+web/src/solver.ts     typed wrapper around the solver wasm, no DOM
+web/src/share.ts      share codes of the classic page
+web/src/board.ts      SVG drawing of the classic page
+web/src/main.ts       classic page UI (classic.html)
 test/solver.test.ts   tests, run against the real wasm
-scripts/build-wasm.ts compiles the core and embeds it for the web build
+scripts/build-wasm.ts compiles solver and designer and embeds them for the web build
 ```
 
 ## Develop
@@ -95,10 +105,42 @@ directly).
 npm install
 npm run dev     # build the wasm, then serve with Vite
 npm test        # build the wasm, then run the tests
-npm run build   # type-check and write dist/index.html
+npm run build   # type-check and write dist/index.html and dist/classic.html
 ```
 
 Set `ZIG=/path/to/zig` if `zig` is not on your `PATH`.
 
-A native front end (Qt or otherwise) can link `core/solver.zig` directly: it
-exposes a plain C ABI and keeps no browser assumptions.
+## Native app
+
+`native/` is a desktop version of the design workbench written in Zig, with
+the solver linked in directly. It has no dependencies beyond the system
+frameworks and builds without Xcode.
+
+```sh
+./scripts/build-native.sh        # needs Zig 0.17, macOS
+open "build/Sudoku Forge.app"
+```
+
+It is an editor first: cages, lines (thermometers with branches, arrows,
+German whispers, renban, palindromes), signs between two cells (inequality,
+XV, kropki dots), odd and even cells, givens, and "wanted" digits that steer
+the solution without being clues. Every edit is analysed live and can be
+undone. A puzzle copies to the clipboard as a short text code and loads back
+from one. It also exports as a link that opens in SudokuPad, written in the
+f-puzzles format; whisper and renban lines and inequality signs travel as
+drawings there, because that format has no rule for them.
+
+```
+native/app.zig     the whole app: state, layout, input, drawing. No platform code.
+native/macos.zig   AppKit backend through the Objective-C runtime
+native/objc.zig    hand-written bindings for it
+native/solver.zig  declarations of the solver's exported functions
+native/lzstring.zig lz-string compression, for the SudokuPad link
+```
+
+`app.zig` draws everything, buttons included, through a handful of primitives
+in its `Host` struct. A backend for another platform supplies a window, those
+primitives, pointer and key events, a timer and the clipboard.
+
+`./build/forge --demo --snapshot out.png` drives the app through its own input
+functions and renders the result to a PNG without opening a window.

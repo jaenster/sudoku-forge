@@ -4,121 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sudoku Forge</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #f2f1ed; }
+  @media (prefers-color-scheme: dark) { html, body { background: #131417; } }
+  canvas { display: block; outline: none; touch-action: none; }
+  noscript, #fail { font: 15px system-ui, sans-serif; padding: 24px; display: block; }
+</style>
 </head>
 <body>
-<main>
-  <div class="board-wrap">
-    <svg id="board" viewBox="-6 -6 912 912" tabindex="0" role="application" aria-label="Sudoku board. Arrow keys move, digits fill, Backspace clears."></svg>
-    <div class="status" id="status"></div>
-  </div>
-
-  <aside>
-    <header>
-      <h1>Sudoku Forge</h1>
-      <p class="lede">Set your own sudoku variants and watch live whether they have a solution, a single one, and how little it takes. The solver is written in Zig and runs here as WebAssembly.</p>
-    </header>
-
-    <section>
-      <div class="seg two" id="mode">
-        <button data-v="design" aria-pressed="false">Design</button>
-        <button data-v="play" aria-pressed="true">Play</button>
-      </div>
-    </section>
-
-    <section id="designPanel" hidden>
-      <h2>Draw</h2>
-      <div class="seg four" id="tool">
-        <button data-t="cage" aria-pressed="true">Cage</button>
-        <button data-t="thermo" aria-pressed="false">Thermo</button>
-        <button data-t="digit" aria-pressed="false">Digit</button>
-        <button data-t="erase" aria-pressed="false">Erase</button>
-      </div>
-      <p class="hint" id="toolHint"></p>
-      <label class="row" for="cageSum">Sum of selected cage <input type="number" id="cageSum" min="1" max="45" step="1" placeholder="open"></label>
-      <label class="row" for="digitsShown">My digits are givens <input type="checkbox" id="digitsShown" checked></label>
-      <p class="hint">Turn this off to fix digits of the solution without showing them to the solver.</p>
-
-      <h2>Live analysis</h2>
-      <div class="live" id="live"></div>
-      <label class="row" for="deductions">Show forced digits and candidates <input type="checkbox" id="deductions" checked></label>
-      <div class="btns">
-        <button class="primary" id="playThis">Play this</button>
-        <button id="strip">Strip spare clues</button>
-        <button id="accept">Add suggested givens</button>
-        <button id="build">Complete with search</button>
-        <button id="clearClues">Remove all</button>
-      </div>
-    </section>
-
-    <section>
-      <h2>Rules</h2>
-      <label class="row" for="ruleDiagonals">Both diagonals hold 1 to 9 <input type="checkbox" id="ruleDiagonals"></label>
-      <label class="row" for="ruleKnight">Knight's move apart differ <input type="checkbox" id="ruleKnight"></label>
-    </section>
-
-    <section>
-      <h2>Generate</h2>
-      <label class="row" for="fill">Computer may add <select id="fill">
-        <option value="0">cages</option>
-        <option value="1">given digits</option>
-        <option value="2">nothing</option>
-      </select></label>
-      <label class="row" for="thermos">Thermometers <span><input type="range" id="thermos" min="0" max="12" value="6"> <output id="thermosOut">6</output></span></label>
-      <label class="row" for="logic">Solvable without guessing <input type="checkbox" id="logic" checked></label>
-      <label class="row" for="sym">Rotational symmetry <input type="checkbox" id="sym" checked></label>
-      <label class="row" for="maxsize">Max cage size <span><input type="range" id="maxsize" min="3" max="6" value="4"> <output id="maxsizeOut">4</output></span></label>
-      <label class="row" for="merges">Merge cages <span><input type="range" id="merges" min="0" max="100" step="10" value="100"> <output id="mergesOut">100 %</output></span></label>
-      <label class="row" for="removals">Remove clues <span><input type="range" id="removals" min="0" max="100" step="10" value="100"> <output id="removalsOut">100 %</output></span></label>
-      <p class="hint">The reducer keeps merging cages and deleting clues until nothing more can go without losing uniqueness. Symmetry applies only when the computer lays out every cage itself.</p>
-      <label class="row" for="budget">Search time <span><input type="range" id="budget" min="0" max="20" step="1" value="3"> <output id="budgetOut">3 s</output></span></label>
-      <label class="row" for="goal">Optimise for <select id="goal">
-        <option value="balanced">balance</option>
-        <option value="sparse">fewest clues</option>
-        <option value="deep">most 45-rule steps</option>
-      </select></label>
-      <label class="row" for="seed">Seed <input type="number" id="seed" min="1" max="4294967295" step="1"></label>
-      <div class="btns">
-        <button class="primary" id="new">New puzzle</button>
-        <button id="regen">Build this seed only</button>
-      </div>
-    </section>
-
-    <section id="solvePanel">
-      <h2>Solve</h2>
-      <div class="row">Pencil marks</div>
-      <div class="seg" id="marks">
-        <button data-m="off" aria-pressed="true">Off</button>
-        <button data-m="basic" aria-pressed="false">Basic</button>
-        <button data-m="full" aria-pressed="false">Full logic</button>
-      </div>
-      <div class="btns">
-        <button id="check" aria-pressed="false">Mark mistakes</button>
-        <button id="reveal" aria-pressed="false">Show solution</button>
-        <button id="clear">Clear entries</button>
-      </div>
-    </section>
-
-    <section>
-      <h2>Digits</h2>
-      <div class="pad" id="pad"></div>
-    </section>
-
-    <section>
-      <h2>Share</h2>
-      <label class="hint" for="code">This code is the whole puzzle. Paste a code or link here to open one.</label>
-      <input type="text" id="code" spellcheck="false" autocomplete="off">
-      <div class="btns">
-        <button id="copy">Copy link</button>
-      </div>
-    </section>
-  </aside>
-
-  <footer>
-    The solver keeps a 9-bit candidate mask per cell and runs its propagators as a worklist until nothing changes: all-different on rows, columns, boxes and cages; cage sums against a compile-time table of digit combinations; thermometer bounds; and the 45 rule, which derives the sum of cells that stick in or out of any band of rows, columns or boxes. A clue set counts as a puzzle only when a search for a second solution fails.
-  </footer>
-</main>
-<script type="module" src="/src/main.ts"></script>
+<canvas id="app" tabindex="0" role="application" aria-label="Sudoku Forge puzzle designer"></canvas>
+<noscript>Sudoku Forge needs JavaScript and WebAssembly.</noscript>
+<script type="module" src="./src/app.ts"></script>
 </body>
 </html>
